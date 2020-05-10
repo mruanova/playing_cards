@@ -1,85 +1,78 @@
-const { Card } = require("./Card");
 var mongoose = require("mongoose");
+
 var cardsModel = mongoose.model("Cards");
 exports.cardsModel = cardsModel;
+
 var decksModel = mongoose.model("Decks");
+exports.decksModel = decksModel;
+
+const { generateCards } = require("../helpers/generateCards");
+const { shuffle } = require("../helpers/shuffle");
+
+const { Card } = require("../classes/Card");
+
 module.exports = {
-  index: function (request, response) {
+  index: (request, response) => {
     var promise = decksModel.find({});
     promise
-      .then(function (decks) {
-        response.json({ decks: decks });
+      .then((decks) => {
+        const temp = [];
+        decks.forEach((element) => {
+          temp.push(element._id);
+        });
+        response.json({ decks: temp });
       })
-      .catch(function (err) {
+      .catch((err) => {
         response.json(err);
       });
   },
-  create: function (request, response) {
-    var random_numbers = [];
+  create: (request, response) => {
+    const numbers = [];
     for (let i = 1; i <= 52; i++) {
-      random_numbers.push(i);
+      numbers.push(i);
     }
-    var cards = [];
-    var suits = ["♥", "♠", "♦", "♣"];
-    var values = [
-      "A",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-      "10",
-      "J",
-      "Q",
-      "K",
-    ];
-    suits.forEach(function (suit) {
-      values.forEach(function (value) {
-        cards.push(new Card(value, suit));
-      });
-    });
+    shuffle(numbers);
+    var cards = generateCards();
     var decks = new decksModel(cards);
     var promise = decks.save();
     promise
-      .then(function (deck) {
-        random_numbers.forEach(function (random_number) {
+      .then((deck) => {
+        numbers.forEach((number) => {
           var card = new cardsModel();
-          card.suit = cards[random_number - 1].suit;
-          card.value = cards[random_number - 1].value;
+          card.suit = cards[number - 1].suit;
+          card.value = cards[number - 1].value;
           card._deck = deck;
           var promise = card.save();
           promise
-            .then(function (card) {
-              response.json({ card: card });
+            .then((card) => {
+              response.json({ card });
             })
-            .catch(function (err) {
+            .catch((err) => {
               response.json(err);
             });
         });
-        response.json({ deck: deck });
+        response.json({ deck });
       })
-      .catch(function (err) {
+      .catch((err) => {
         response.json(err);
       });
   },
-  show: function (request, response) {
-    var promise = cardsModel.find({ _deck: request.params.id });
+  show: (request, response) => {
+    const promise = cardsModel.find({ _deck: request.params.id });
     promise
-      .then(function (cards) {
-        new_cards = [];
+      .then((cards) => {
+        const temp = [];
         for (var index in cards) {
-          var new_card = {};
-          new_card.suit = cards[index].suit;
-          new_card.value = cards[index].value;
-          new_cards.push(new_card);
+          const card = new Card(cards[index].value, cards[index].suit);
+          temp.push(card);
         }
-        response.json({ cards: new_cards });
+        response.json({ cards: temp });
       })
-      .catch(function (err) {
+      .catch((err) => {
         response.json(err);
       });
   },
 };
+
+
+
